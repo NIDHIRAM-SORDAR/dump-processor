@@ -1,4 +1,5 @@
 import tkinter as tk
+import tkinter.font as font
 from tkinter import filedialog
 import zipfile
 import os
@@ -12,14 +13,21 @@ class App(tk.Frame):
         super().__init__(master)
         self.master = master
         self.master.title("Dump Processor")
+        self.master.iconbitmap("database-solid.ico")
         # to keep track of the threads
         self.running_threads = 0
         self.std_value = 2.8
 
+        # Define a custom font with bold weight
+        bold_font = font.Font(family="Helvetica", size=11, weight="bold")
+        button_font = font.Font(family="Segoe UI", size=12, weight="normal")
+        text_box_font = font.Font(family="Arial", size=13)
+
         # Create a dropdown list to choose from 4 options
-        self.label = tk.Label(self.master, text="Select an option:")
+        self.label = tk.Label(self.master, text="Select an Option")
+        self.label.configure(font=bold_font)
         self.label.pack()
-        self.var = tk.StringVar(value="Select vendor")
+        self.var = tk.StringVar(value="Select Vendor")
         self.dropdown = tk.OptionMenu(
             self.master,
             self.var,
@@ -37,13 +45,19 @@ class App(tk.Frame):
 
         # Create a button to select a zip file
         self.file_button = tk.Button(
-            self.file_frame, text="Select Zip File", command=self.select_file
+            self.file_frame,
+            text="Select File",
+            font=button_font,
+            command=self.select_file,
         )
         self.file_button.pack(side="left")
 
         # Create a button to select a second zip file (if "Both" is selected)
         self.file_button2 = tk.Button(
-            self.file_frame, text="Select Second Zip File", command=self.select_file2
+            self.file_frame,
+            text="Select Second File",
+            font=button_font,
+            command=self.select_file2,
         )
         # Hide the button by default
         self.file_button2.pack_forget()
@@ -51,32 +65,40 @@ class App(tk.Frame):
         # Create a section to set STD value
         self.std_frame = tk.Frame(self.master)
         self.std_frame.pack(pady=10)
-        self.std_label = tk.Label(self.std_frame, text="Enter STD value:")
+        self.std_label = tk.Label(self.std_frame, text="Enter STD Value:")
         self.std_label.pack(side="left")
         self.std_entry = tk.Entry(self.std_frame)
         self.std_entry.pack(side="left", padx=10)
         self.std_button = tk.Button(
-            self.std_frame, text="Set STD", command=self.set_std_value
+            self.std_frame, text="Set STD", font=button_font, command=self.set_std_value
         )
         self.std_button.pack(side="left", padx=10)
 
         # Hide the frame by default
         self.std_frame.pack_forget()
         # Create a section to display file processing information
-        self.process_label = tk.Label(self.master, text="Processing Information:")
+        self.process_label = tk.Label(self.master, font=bold_font, text="Dashboard")
         self.process_label.pack()
-        self.process_text = tk.Text(self.master, height=10, width=50)
+        self.process_text = tk.Text(
+            self.master, height=10, width=50, font=text_box_font
+        )
         self.process_text.pack(pady=10)
 
         # Create a button to process the selected file(s)
         self.process_button = tk.Button(
-            self.master, text="Process File", command=self.process_file
+            self.master,
+            text="Process File",
+            font=button_font,
+            command=self.process_file,
         )
         self.process_button.pack(pady=10)
 
         # Create a button to open the processed file
         self.open_button = tk.Button(
-            self.master, text="Open Processed File", command=self.open_file
+            self.master,
+            text="Open Processed File",
+            font=button_font,
+            command=self.open_file,
         )
         self.open_button.pack(pady=10)
 
