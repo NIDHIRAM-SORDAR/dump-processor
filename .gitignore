@@ -1,0 +1,22 @@
+# Ignore pycache files
+__pycache__/
+
+# Ignore log files
+logs/
+
+# Ignore .pyc files
+*.pyc
+
+# Ignore environment files
+.env
+
+# Ignore build files
+build/
+
+# Ignore compiled files
+dist/
+
+# Ignore egg-info files
+*.egg-info/
+*.ipynb
+*.code-workspace
