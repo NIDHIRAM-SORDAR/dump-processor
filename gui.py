@@ -48,6 +48,20 @@ class App(tk.Frame):
         # Hide the button by default
         self.file_button2.pack_forget()
 
+        # Create a section to set STD value
+        self.std_frame = tk.Frame(self.master)
+        self.std_frame.pack(pady=10)
+        self.std_label = tk.Label(self.std_frame, text="Enter STD value:")
+        self.std_label.pack(side="left")
+        self.std_entry = tk.Entry(self.std_frame)
+        self.std_entry.pack(side="left", padx=10)
+        self.std_button = tk.Button(
+            self.std_frame, text="Set STD", command=self.set_std_value
+        )
+        self.std_button.pack(side="left", padx=10)
+
+        # Hide the frame by default
+        self.std_frame.pack_forget()
         # Create a section to display file processing information
         self.process_label = tk.Label(self.master, text="Processing Information:")
         self.process_label.pack()
@@ -83,22 +97,36 @@ class App(tk.Frame):
                     command=self.select_file2,
                 )
                 self.file_button2.pack(side="left", padx=10, pady=10)
+            if self.check_frame_status(self.std_frame):
+                self.std_frame.pack_forget()
         elif self.var.get() == "Nokia":
             self.file_button.config(text="Select Zip File")
             if hasattr(self, "file_button2"):
                 self.file_button2.pack_forget()
+            if self.check_frame_status(self.std_frame):
+                self.std_frame.pack_forget()
         elif self.var.get() == "Huawei":
             self.file_button.config(text="Select XLSX File")
             if hasattr(self, "file_button2"):
                 self.file_button2.pack_forget()
+            if self.check_frame_status(self.std_frame):
+                self.std_frame.pack_forget()
         elif self.var.get() == "Congestion":
             self.file_button.config(text="Select CSV File")
             if hasattr(self, "file_button2"):
                 self.file_button2.pack_forget()
+            if not self.check_frame_status(self.std_frame):
+                self.std_frame.pack(after=self.file_frame)
 
         # Update the position of the processing information label and text
         self.process_label.pack(padx=10, pady=10)
         self.process_text.pack(padx=10, pady=10)
+
+    def check_frame_status(self, frame_name):
+        if frame_name.winfo_manager() == "pack":
+            return True
+        else:
+            return False
 
     def select_file(self):
         # Display a file selection window and get the selected file path
@@ -120,6 +148,14 @@ class App(tk.Frame):
         if file_path:
             self.file_button2.config(text="Selected: " + os.path.basename(file_path))
             self.file_path2 = file_path
+
+    def set_std_value(self):
+        try:
+            value = float(self.std_entry.get())
+            if value:
+                self.std_value = value
+        except ValueError:
+            self.process_text.insert(tk.END, "Invalid Input. \n")
 
     def process_file(self):
         # Process the selected file and display information in the processing section
