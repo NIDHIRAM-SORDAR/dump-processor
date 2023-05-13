@@ -22,6 +22,9 @@ class App(tk.Frame):
         bold_font = font.Font(family="Helvetica", size=11, weight="bold")
         button_font = font.Font(family="Segoe UI", size=12, weight="normal")
         text_box_font = font.Font(family="Arial", size=13)
+        processed_file_label_font = font.Font(
+            family="Helvetica", size=11, weight="bold"
+        )
 
         # Create a dropdown list to choose from 4 options
         self.label = tk.Label(self.master, text="Select an Option")
@@ -93,14 +96,29 @@ class App(tk.Frame):
         )
         self.process_button.pack(pady=10)
 
+        # Create A frame to hold procssed file button and label
+        self.processed_frame = tk.Frame(self.master)
+        self.processed_frame.pack(pady=10)
+
         # Create a button to open the processed file
         self.open_button = tk.Button(
-            self.master,
+            self.processed_frame,
             text="Open Processed File",
             font=button_font,
             command=self.open_file,
         )
-        self.open_button.pack(pady=10)
+        self.open_button.pack(side="left", padx=10)
+        # Create a label to show processed file path
+        self.procssed_file_label = tk.Label(
+            self.processed_frame, text="No file available yet"
+        )
+        self.procssed_file_label.config(
+            font=processed_file_label_font,
+            borderwidth=2,
+            relief="ridge",
+            padx=5,
+        )
+        self.procssed_file_label.pack(side="left", padx=10)
 
         # Set up initial state of GUI
         self.update_gui()
@@ -149,6 +167,9 @@ class App(tk.Frame):
             return True
         else:
             return False
+
+    def path_joiner(self, path1, path2):
+        return os.path.normpath(os.path.join(path1, path2))
 
     def select_file(self):
         # Display a file selection window and get the selected file path
@@ -260,15 +281,7 @@ class App(tk.Frame):
             and hasattr(self, "output_path_nok")
             and hasattr(self, "output_path_huw")
         ):
-            df1 = pd.read_excel(self.output_path_nok)
-            df2 = pd.read_excel(self.output_path_huw)
-            frames = [df1, df2]
-            result_df = pd.concat(frames)
-            output_path_combine = os.path.join(
-                os.path.dirname(self.file_path), "combine_output.xlsx"
-            )
-            result_df.to_excel(output_path_combine, index=False)
-            os.startfile(output_path_combine)
+            os.startfile(self.output_path_combine)
         else:
             self.process_text.insert(tk.END, "No file selected. \n")
 
@@ -316,7 +329,7 @@ class App(tk.Frame):
             + ":"
             + str(int(x.total_seconds() % 60)).zfill(2)
         )
-        self.output_path_nok = os.path.join(
+        self.output_path_nok = self.path_joiner(
             os.path.dirname(self.file_path), "nokia_output.xlsx"
         )
         sum_df.to_excel(self.output_path_nok, index=False)
@@ -382,7 +395,7 @@ class App(tk.Frame):
         )
         sum_df["MO Name"] = sum_df["MO Name"].apply(lambda x: x[:8])
         sum_df = sum_df.rename(columns={"MO Name": "Name"})
-        self.output_path_huw = os.path.join(
+        self.output_path_huw = self.path_joiner(
             os.path.dirname(file_path), "huawei_output.xlsx"
         )
         sum_df.to_excel(self.output_path_huw, index=False)
@@ -403,8 +416,8 @@ class App(tk.Frame):
             print(f"there is an error {e}")
 
         # file paths for clean and congestion result file
-        clean_path = os.path.join(os.path.dirname(out_file), "clean_data.xlsx")
-        self.output_path_cong = os.path.join(
+        clean_path = self.path_joiner(os.path.dirname(out_file), "clean_data.xlsx")
+        self.output_path_cong = self.path_joiner(
             os.path.dirname(out_file), "congestion_data.xlsx"
         )
 
@@ -427,6 +440,25 @@ class App(tk.Frame):
             # Enable the process button
             self.process_button.config(state=tk.NORMAL)
             self.running_threads = 0
+            if self.var.get() == "Nokia":
+                self.procssed_file_label.config(text=str(self.output_path_nok))
+            elif self.var.get() == "Huawei":
+                self.procssed_file_label.config(text=str(self.output_path_huw))
+            elif self.var.get() == "Congestion":
+                self.procssed_file_label.config(text=str(self.output_path_cong))
+            else:
+                if hasattr(self, "output_path_nok") and hasattr(
+                    self, "output_path_huw"
+                ):
+                    df1 = pd.read_excel(self.output_path_nok)
+                    df2 = pd.read_excel(self.output_path_huw)
+                    frames = [df1, df2]
+                    result_df = pd.concat(frames)
+                    self.output_path_combine = self.path_joiner(
+                        os.path.dirname(self.file_path), "combine_output.xlsx"
+                    )
+                    result_df.to_excel(self.output_path_combine, index=False)
+                self.procssed_file_label.config(text=str(self.output_path_combine))
 
 
 root = tk.Tk()
