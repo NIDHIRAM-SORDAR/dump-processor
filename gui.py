@@ -198,92 +198,62 @@ class App(tk.Frame):
         self.new_window = tk.Toplevel(self.master)
         self.new_window.title("Site BW Utilization")
 
-        # Add uniform column configuration
-        self.new_window.grid_columnconfigure(0, weight=1, uniform="col")
-        self.new_window.grid_columnconfigure(1, weight=1, uniform="col")
+        # Create a frame for the first column
+        self.combobox_frame = tk.Frame(self.new_window)
+        self.combobox_frame.grid(row=0, column=0, sticky="nsew")
 
-        # Add label
-        self.label = tk.Label(self.new_window, text="Select Site Name")
-        self.label.pack()
+        # Create a frame for the second column
+        self.graph_frame = tk.Frame(self.new_window)
+        self.graph_frame.grid(row=0, column=1, sticky="nsew")
 
-        # Add dropdown with scrollbar
-        self.var = tk.StringVar(self.new_window)
-        self.var.set(self.df_graph["site_name"].name)
-        self.dropdown_frame = tk.Frame(self.new_window, height=100)
-        self.dropdown_frame.pack(
-            side=tk.LEFT,
-            fill=tk.BOTH,
-        )
-        self.dropdown_container = tk.Frame(self.dropdown_frame)
-        self.dropdown_container.pack(
-            side=tk.TOP,
-            fill=tk.BOTH,
-        )
-        self.dropdown_canvas = tk.Canvas(self.dropdown_container, width=200)
-        self.dropdown_canvas.pack(
-            side=tk.LEFT,
-            fill=tk.BOTH,
-        )
-        self.dropdown_scrollbar = ttk.Scrollbar(
-            self.dropdown_container,
-            orient=tk.VERTICAL,
-            command=self.dropdown_canvas.yview,
-        )
-        self.dropdown_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.dropdown_canvas.configure(yscrollcommand=self.dropdown_scrollbar.set)
-        self.dropdown = tk.OptionMenu(
-            self.dropdown_canvas,
-            self.var,
-            *list(self.df_graph.groupby("site_name").groups.keys()),
-            command=self.draw_graph,
-        )
-        self.dropdown.pack(
-            side=tk.TOP,
-            fill=tk.BOTH,
-        )
-        self.dropdown.bind(
-            "<Configure>",
-            lambda e: self.dropdown_canvas.configure(
-                scrollregion=self.dropdown_canvas.bbox("all")
-            ),
-        )
+        # Set the size of the columns
+        self.new_window.grid_columnconfigure(0, weight=1)
+        self.new_window.grid_columnconfigure(1, weight=1)
 
-        # Add frame for canvas and button
-        self.canvas_button_frame = tk.Frame(self.new_window)
-        self.canvas_button_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        # Add label before combobox
+        self.combo_label = tk.Label(self.combobox_frame, text="Select Site Name")
+        self.combo_label.pack(side=tk.LEFT, padx=10, pady=10)
 
-        # Add canvas for graph
-        self.canvas_frame = tk.Frame(self.canvas_button_frame)
-        self.canvas_frame.grid(row=0, column=0, sticky="nsew")
-        self.canvas_frame.grid_rowconfigure(0, weight=1)
-        self.canvas_frame.grid_columnconfigure(0, weight=1)
+        # create a comboBOX
+
+        self.options = list(self.df_graph.groupby("site_name").groups.keys())
+        self.combobox = ttk.Combobox(
+            self.combobox_frame,
+            values=self.options,
+            state="readonly",
+        )
+        self.combobox.current(0)  # Set the initial value to "Option 1"
+        self.combobox.pack(side=tk.LEFT, padx=5)
+
+        # Bind the "<<ComboboxSelected>>" event to a callback function
+        self.combobox.bind("<<ComboboxSelected>>", self.draw_graph)
+
+        # Create a figure and a subplot
         fig = Figure(figsize=(5, 4), dpi=100)
         self.ax = fig.add_subplot(111)
-        # ax.plot(self.series)
-        self.canvas = FigureCanvasTkAgg(fig, master=self.canvas_frame)
+        # Create a canvas and display the graph in it
+        self.canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
         self.canvas.draw()
         self.canvas_widget = self.canvas.get_tk_widget()
         self.canvas_widget.pack(fill=tk.BOTH, expand=True)
 
         # Add quit button
-        self.button_frame = tk.Frame(self.canvas_button_frame)
-        self.button_frame.grid(row=1, column=0, sticky="nsew")
         self.quit_button = tk.Button(
-            self.button_frame,
+            self.graph_frame,
             text="Close",
             font=font.Font(family="Segoe UI", size=12, weight="normal"),
             command=self.new_window.destroy,
         )
         self.quit_button.pack(
-            side=tk.LEFT,
+            side=tk.BOTTOM,
             padx=10,
             pady=10,
             fill=tk.X,
             expand=True,
         )
 
-    def draw_graph(self, selected_value):
-        site = str(selected_value)
+    def draw_graph(self, event):
+        site = str(self.combobox.get())
         grouped_df = self.df_graph.groupby("site_name")
         data_as_time_index = grouped_df.get_group(site)[
             ["collection_time", "inbound_peak_rate"]
