@@ -4,6 +4,7 @@ import numpy as np
 from scipy import stats
 from scipy.signal import find_peaks
 import errno
+import matplotlib.pyplot as plt
 
 
 def parse_raw_file(input_file):
@@ -199,18 +200,27 @@ def silentremove(filename):
 
 if __name__ == "__main__":
     std_value = 2.8
-    input_file = r"C:\Users\Asus\Downloads\atn_data\logs.csv"
-    out_file = r"C:\Users\Asus\Downloads\atn_data\tream.csv"
+    input_file = r"D:\My Python Project\downtime_calculator\logs\logs.csv"
+    out_file = r"D:\My Python Project\downtime_calculator\logs\tream.csv"
     tream_file = clean_raw_data(input_file, out_file)
     df = pd.read_csv(tream_file)
     try:
         df = prepare_dataframe(df)
     except ValueError as e:
         print(f"there is an error {e}")
-    print(df.head())
-    output_path = os.path.join(os.path.dirname(out_file), "clean_data.xlsx")
-    clean_path = os.path.join(os.path.dirname(out_file), "congestion_data.xlsx")
-    df.to_excel(output_path, index=False)
-    result_list = congestion_calculation(df, std_value)
-    out_result = pd.DataFrame(result_list)
-    out_result.to_excel(clean_path, index=False)
+
+    grouped_df = df.groupby("site_name")
+    site = "BAR6006"
+    data_as_time_index = grouped_df.get_group(site)[
+        ["collection_time", "inbound_peak_rate"]
+    ].set_index("collection_time")
+    print(data_as_time_index.columns)
+    # print(list(df.groupby("site_name").groups.keys()))
+    # df.plot(x="collection_time", y="inbound_peak_rate")
+    # plt.show()
+    # output_path = os.path.join(os.path.dirname(out_file), "clean_data.xlsx")
+    # clean_path = os.path.join(os.path.dirname(out_file), "congestion_data.xlsx")
+    # df.to_excel(output_path, index=False)
+    # result_list = congestion_calculation(df, std_value)
+    # out_result = pd.DataFrame(result_list)
+    # out_result.to_excel(clean_path, index=False)

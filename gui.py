@@ -1,10 +1,13 @@
 import tkinter as tk
 import tkinter.font as font
+from tkinter import ttk
 from tkinter import filedialog
 import zipfile
 import os
 import threading
 import pandas as pd
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 from congestion_detect import *
 
 
@@ -17,6 +20,7 @@ class App(tk.Frame):
         # to keep track of the threads
         self.running_threads = 0
         self.std_value = 2.8
+        self.df_graph = None
 
         # Define a custom font with bold weight
         bold_font = font.Font(family="Helvetica", size=11, weight="bold")
@@ -120,6 +124,15 @@ class App(tk.Frame):
         )
         self.procssed_file_label.pack(side="left", padx=10)
 
+        # Create a button to show graph and initially hide it
+        self.graph_button = tk.Button(
+            self.master,
+            text="View BW Graph",
+            font=button_font,
+            command=self.show_graph,
+        )
+        # Hide the button by default
+        self.graph_button.pack_forget()
         # Set up initial state of GUI
         self.update_gui()
 
@@ -139,24 +152,34 @@ class App(tk.Frame):
                 self.file_button2.pack(side="left", padx=10, pady=10)
             if self.check_frame_status(self.std_frame):
                 self.std_frame.pack_forget()
+            if self.check_frame_status(self.graph_button):
+                self.graph_button.pack_forget()
         elif self.var.get() == "Nokia":
             self.file_button.config(text="Select Zip File")
             if hasattr(self, "file_button2"):
                 self.file_button2.pack_forget()
             if self.check_frame_status(self.std_frame):
                 self.std_frame.pack_forget()
+            if self.check_frame_status(self.graph_button):
+                self.graph_button.pack_forget()
         elif self.var.get() == "Huawei":
             self.file_button.config(text="Select XLSX File")
             if hasattr(self, "file_button2"):
                 self.file_button2.pack_forget()
             if self.check_frame_status(self.std_frame):
                 self.std_frame.pack_forget()
+            if self.check_frame_status(self.graph_button):
+                self.graph_button.pack_forget()
         elif self.var.get() == "Congestion":
             self.file_button.config(text="Select CSV File")
             if hasattr(self, "file_button2"):
                 self.file_button2.pack_forget()
             if not self.check_frame_status(self.std_frame):
                 self.std_frame.pack(after=self.file_frame)
+
+        # elif self.df_graph is not None:
+        #     if not self.check_frame_status(self.graph_button):
+        #         self.graph_button.pack(pady=10)
 
         # Update the position of the processing information label and text
         self.process_label.pack(padx=10, pady=10)
@@ -170,6 +193,100 @@ class App(tk.Frame):
 
     def path_joiner(self, path1, path2):
         return os.path.normpath(os.path.join(path1, path2))
+
+    def show_graph(self):
+        self.new_window = tk.Toplevel(self.master)
+        self.new_window.title("Site BW Utilization")
+
+        # Add uniform column configuration
+        self.new_window.grid_columnconfigure(0, weight=1, uniform="col")
+        self.new_window.grid_columnconfigure(1, weight=1, uniform="col")
+
+        # Add label
+        self.label = tk.Label(self.new_window, text="Select Site Name")
+        self.label.pack()
+
+        # Add dropdown with scrollbar
+        self.var = tk.StringVar(self.new_window)
+        self.var.set(self.df_graph["site_name"].name)
+        self.dropdown_frame = tk.Frame(self.new_window, height=100)
+        self.dropdown_frame.pack(
+            side=tk.LEFT,
+            fill=tk.BOTH,
+        )
+        self.dropdown_container = tk.Frame(self.dropdown_frame)
+        self.dropdown_container.pack(
+            side=tk.TOP,
+            fill=tk.BOTH,
+        )
+        self.dropdown_canvas = tk.Canvas(self.dropdown_container, width=200)
+        self.dropdown_canvas.pack(
+            side=tk.LEFT,
+            fill=tk.BOTH,
+        )
+        self.dropdown_scrollbar = ttk.Scrollbar(
+            self.dropdown_container,
+            orient=tk.VERTICAL,
+            command=self.dropdown_canvas.yview,
+        )
+        self.dropdown_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.dropdown_canvas.configure(yscrollcommand=self.dropdown_scrollbar.set)
+        self.dropdown = tk.OptionMenu(
+            self.dropdown_canvas,
+            self.var,
+            *list(self.df_graph.groupby("site_name").groups.keys()),
+            command=self.draw_graph,
+        )
+        self.dropdown.pack(
+            side=tk.TOP,
+            fill=tk.BOTH,
+        )
+        self.dropdown.bind(
+            "<Configure>",
+            lambda e: self.dropdown_canvas.configure(
+                scrollregion=self.dropdown_canvas.bbox("all")
+            ),
+        )
+
+        # Add canvas for graph
+        self.canvas_frame = tk.Frame(self.new_window)
+        self.canvas_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.canvas_frame.grid_rowconfigure(0, weight=1)
+        self.canvas_frame.grid_columnconfigure(0, weight=1)
+        fig = Figure(figsize=(5, 4), dpi=100)
+        self.ax = fig.add_subplot(111)
+        # ax.plot(self.series)
+        self.canvas = FigureCanvasTkAgg(fig, master=self.canvas_frame)
+        self.canvas.draw()
+        self.canvas_widget = self.canvas.get_tk_widget()
+        self.canvas_widget.pack(fill=tk.BOTH, expand=True)
+
+        # Add quit button
+        self.button_frame = tk.Frame(self.new_window)
+        self.button_frame.pack(
+            after=self.canvas_frame, fill=tk.X, expand=False, pady=10
+        )
+        self.quit_button = tk.Button(
+            self.button_frame, text="Quit", command=self.new_window.destroy
+        )
+        self.quit_button.pack(side=tk.BOTTOM, pady=20, padx=20)
+
+    def draw_graph(self, selected_value):
+        site = str(selected_value)
+        grouped_df = self.df_graph.groupby("site_name")
+        data_as_time_index = grouped_df.get_group(site)[
+            ["collection_time", "inbound_peak_rate"]
+        ].set_index("collection_time")
+        # Clear existing graph
+        self.ax.clear()
+
+        # Plot data
+        self.ax.plot(
+            data_as_time_index["inbound_peak_rate"],
+        )
+
+        # Update canvas
+        self.canvas.draw()
 
     def select_file(self):
         # Display a file selection window and get the selected file path
@@ -411,7 +528,7 @@ class App(tk.Frame):
         df_cong = pd.read_csv(tream_file)
 
         try:
-            df = prepare_dataframe(df_cong)
+            self.df_graph = prepare_dataframe(df_cong)
         except ValueError as e:
             print(f"there is an error {e}")
 
@@ -421,8 +538,8 @@ class App(tk.Frame):
             os.path.dirname(out_file), "congestion_data.xlsx"
         )
 
-        df.to_excel(clean_path, index=False)
-        result_list = congestion_calculation(df, self.std_value)
+        self.df_graph.to_excel(clean_path, index=False)
+        result_list = congestion_calculation(self.df_graph, self.std_value)
         out_result = pd.DataFrame(result_list)
         out_result.to_excel(self.output_path_cong, index=False)
 
@@ -446,6 +563,8 @@ class App(tk.Frame):
                 self.procssed_file_label.config(text=str(self.output_path_huw))
             elif self.var.get() == "Congestion":
                 self.procssed_file_label.config(text=str(self.output_path_cong))
+                if not self.check_frame_status(self.graph_button):
+                    self.graph_button.pack(pady=10)
             else:
                 if hasattr(self, "output_path_nok") and hasattr(
                     self, "output_path_huw"
