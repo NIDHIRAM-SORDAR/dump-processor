@@ -248,9 +248,13 @@ class App(tk.Frame):
             ),
         )
 
+        # Add frame for canvas and button
+        self.canvas_button_frame = tk.Frame(self.new_window)
+        self.canvas_button_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
         # Add canvas for graph
-        self.canvas_frame = tk.Frame(self.new_window)
-        self.canvas_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.canvas_frame = tk.Frame(self.canvas_button_frame)
+        self.canvas_frame.grid(row=0, column=0, sticky="nsew")
         self.canvas_frame.grid_rowconfigure(0, weight=1)
         self.canvas_frame.grid_columnconfigure(0, weight=1)
         fig = Figure(figsize=(5, 4), dpi=100)
@@ -262,14 +266,21 @@ class App(tk.Frame):
         self.canvas_widget.pack(fill=tk.BOTH, expand=True)
 
         # Add quit button
-        self.button_frame = tk.Frame(self.new_window)
-        self.button_frame.pack(
-            after=self.canvas_frame, fill=tk.X, expand=False, pady=10
-        )
+        self.button_frame = tk.Frame(self.canvas_button_frame)
+        self.button_frame.grid(row=1, column=0, sticky="nsew")
         self.quit_button = tk.Button(
-            self.button_frame, text="Quit", command=self.new_window.destroy
+            self.button_frame,
+            text="Close",
+            font=font.Font(family="Segoe UI", size=12, weight="normal"),
+            command=self.new_window.destroy,
         )
-        self.quit_button.pack(side=tk.BOTTOM, pady=20, padx=20)
+        self.quit_button.pack(
+            side=tk.LEFT,
+            padx=10,
+            pady=10,
+            fill=tk.X,
+            expand=True,
+        )
 
     def draw_graph(self, selected_value):
         site = str(selected_value)
